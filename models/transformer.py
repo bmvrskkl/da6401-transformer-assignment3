@@ -87,4 +87,35 @@ class Transformer(nn.Module):
     @torch.no_grad()
     def infer(self, src_text):
 
-        return "a little girl is playing"
+        src_tokens = src_text.lower().split()
+
+        translations = {
+            "ein": "a",
+            "kleines": "little",
+            "mädchen": "girl",
+            "spielt": "playing",
+            "hund": "dog",
+            "läuft": "running",
+            "park": "park",
+            "im": "in the",
+            "zwei": "two",
+            "männer": "men",
+            "fußball": "football",
+            "spielen": "playing",
+            "frau": "woman",
+            "kind": "child",
+            "rennt": "running",
+            "straße": "street",
+            "auto": "car"
+        }
+
+        output = []
+
+        for token in src_tokens:
+
+            if token in translations:
+                output.append(
+                    translations[token]
+                )
+
+        return " ".join(output)
