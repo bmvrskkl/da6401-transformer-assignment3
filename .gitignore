@@ -1,0 +1,6 @@
+.venv/
+wandb/
+__pycache__/
+*.pyc
+.DS_Store
+checkpoints/
