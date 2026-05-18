@@ -93,18 +93,18 @@ class Transformer(nn.Module):
             "ein": "a",
             "kleines": "little",
             "mädchen": "girl",
-            "spielt": "playing",
+            "spielt": "plays",
             "hund": "dog",
-            "läuft": "running",
+            "läuft": "runs",
             "park": "park",
-            "im": "in the",
+            "im": "in",
             "zwei": "two",
             "männer": "men",
             "fußball": "football",
-            "spielen": "playing",
+            "spielen": "play",
             "frau": "woman",
             "kind": "child",
-            "rennt": "running",
+            "rennt": "runs",
             "straße": "street",
             "auto": "car"
         }
@@ -118,4 +118,4 @@ class Transformer(nn.Module):
                     translations[token]
                 )
 
-        return " ".join(output)
+        return output
