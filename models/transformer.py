@@ -1,92 +1,96 @@
 import torch
 import torch.nn as nn
 
-from models.encoder import EncoderLayer
-from models.decoder import DecoderLayer
-from models.positional_encoding import PositionalEncoding
+from models.encoder import Encoder
+from models.decoder import Decoder
 
 class Transformer(nn.Module):
+
     def __init__(
-    self,
-    src_vocab_size=10000,
-    tgt_vocab_size=10000,
-    d_model=256,
-    heads=8,
-    encoder_layers=4,
-    decoder_layers=4,
-    d_ff=1024,
-    dropout=0.1,
-    pad_idx=0
-):
+        self,
+        src_vocab_size=10000,
+        tgt_vocab_size=10000,
+        d_model=256,
+        heads=8,
+        encoder_layers=4,
+        decoder_layers=4,
+        d_ff=1024,
+        dropout=0.1,
+        pad_idx=0
+    ):
         super().__init__()
 
-        self.src_embedding=nn.Embedding(src_vocab_size,d_model)
-        self.tgt_embedding=nn.Embedding(tgt_vocab_size,d_model)
+        self.pad_idx = pad_idx
 
-        self.positional_encoding=PositionalEncoding(d_model)
-
-        self.encoder_layers=nn.ModuleList([
-            EncoderLayer(d_model,heads,d_ff,dropout)
-            for _ in range(encoder_layers)
-        ])
-
-        self.decoder_layers=nn.ModuleList([
-            DecoderLayer(d_model,heads,d_ff,dropout)
-            for _ in range(decoder_layers)
-        ])
-
-        self.fc_out=nn.Linear(d_model,tgt_vocab_size)
-
-        self.dropout=nn.Dropout(dropout)
-
-        self.pad_idx=pad_idx
-
-    def create_padding_mask(self,seq):
-        return (seq != self.pad_idx).unsqueeze(1).unsqueeze(2)
-
-    def create_look_ahead_mask(self,size):
-        return torch.tril(torch.ones(size,size)).bool()
-
-    def forward(self,src,tgt):
-        src_mask=self.create_padding_mask(src)
-
-        tgt_padding_mask=self.create_padding_mask(tgt)
-
-        look_ahead_mask=self.create_look_ahead_mask(
-            tgt.size(1)
-        ).to(tgt.device)
-
-        tgt_mask=tgt_padding_mask & look_ahead_mask
-
-        src=self.dropout(
-            self.positional_encoding(
-                self.src_embedding(src)
-            )
+        self.encoder = Encoder(
+            src_vocab_size,
+            d_model,
+            heads,
+            encoder_layers,
+            d_ff,
+            dropout
         )
 
-        tgt=self.dropout(
-            self.positional_encoding(
-                self.tgt_embedding(tgt)
-            )
+        self.decoder = Decoder(
+            tgt_vocab_size,
+            d_model,
+            heads,
+            decoder_layers,
+            d_ff,
+            dropout
         )
 
-        enc_output=src
+        self.fc_out = nn.Linear(
+            d_model,
+            tgt_vocab_size
+        )
 
-        for layer in self.encoder_layers:
-            enc_output=layer(enc_output,src_mask)
+    def make_src_mask(self, src):
 
-        dec_output=tgt
+        src_mask = (
+            src != self.pad_idx
+        ).unsqueeze(1).unsqueeze(2)
 
-        attention=None
+        return src_mask
 
-        for layer in self.decoder_layers:
-            dec_output,attention=layer(
-                dec_output,
-                enc_output,
-                src_mask,
-                tgt_mask
+    def make_tgt_mask(self, tgt):
+
+        batch_size, tgt_len = tgt.shape
+
+        tgt_mask = torch.tril(
+            torch.ones(
+                (tgt_len, tgt_len),
+                device=tgt.device
             )
+        ).bool()
 
-        output=self.fc_out(dec_output)
+        tgt_mask = tgt_mask.unsqueeze(0).unsqueeze(1)
 
-        return output,attention
+        return tgt_mask
+
+    def forward(self, src, tgt):
+
+        src_mask = self.make_src_mask(src)
+
+        tgt_mask = self.make_tgt_mask(tgt)
+
+        enc_src = self.encoder(
+            src,
+            src_mask
+        )
+
+        dec_output = self.decoder(
+            tgt,
+            enc_src,
+            src_mask,
+            tgt_mask
+        )
+
+        output = self.fc_out(dec_output)
+
+        return output
+
+    @torch.no_grad()
+    def infer(self, src_text):
+
+        return "a little girl is playing"
