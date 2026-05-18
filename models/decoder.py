@@ -1,38 +1,70 @@
+import torch
 import torch.nn as nn
-from models.attention import MultiHeadAttention
-from models.encoder import FeedForward
 
-class DecoderLayer(nn.Module):
-    def __init__(self,d_model,heads,d_ff,dropout):
+from models.attention import MultiHeadAttention
+from models.positional_encoding import PositionalEncoding
+
+class Decoder(nn.Module):
+
+    def __init__(
+        self,
+        vocab_size,
+        d_model,
+        heads,
+        layers,
+        d_ff,
+        dropout,
+        max_len=5000
+    ):
         super().__init__()
 
-        self.self_attention=MultiHeadAttention(d_model,heads)
-        self.cross_attention=MultiHeadAttention(d_model,heads)
-
-        self.ffn=FeedForward(d_model,d_ff,dropout)
-
-        self.norm1=nn.LayerNorm(d_model)
-        self.norm2=nn.LayerNorm(d_model)
-        self.norm3=nn.LayerNorm(d_model)
-
-        self.dropout=nn.Dropout(dropout)
-
-    def forward(self,x,enc_output,src_mask,tgt_mask):
-        attn1,_=self.self_attention(x,x,x,tgt_mask)
-
-        x=self.norm1(x+self.dropout(attn1))
-
-        attn2,attention=self.cross_attention(
-            x,
-            enc_output,
-            enc_output,
-            src_mask
+        self.embedding = nn.Embedding(
+            vocab_size,
+            d_model
         )
 
-        x=self.norm2(x+self.dropout(attn2))
+        self.position = PositionalEncoding(
+            d_model,
+            max_len
+        )
 
-        ffn_output=self.ffn(x)
+        self.layers = nn.ModuleList([
+            MultiHeadAttention(
+                d_model,
+                heads
+            )
+            for _ in range(layers)
+        ])
 
-        x=self.norm3(x+self.dropout(ffn_output))
+        self.norm = nn.LayerNorm(d_model)
 
-        return x,attention
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(
+        self,
+        x,
+        enc_out,
+        src_mask,
+        tgt_mask
+    ):
+
+        x = self.embedding(x)
+
+        x = self.position(x)
+
+        x = self.dropout(x)
+
+        for layer in self.layers:
+
+            attention = layer(
+                x,
+                x,
+                x,
+                tgt_mask
+            )
+
+            x = self.norm(
+                x + attention
+            )
+
+        return x

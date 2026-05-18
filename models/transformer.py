@@ -47,26 +47,22 @@ class Transformer(nn.Module):
 
     def make_src_mask(self, src):
 
-        src_mask = (
+        return (
             src != self.pad_idx
         ).unsqueeze(1).unsqueeze(2)
-
-        return src_mask
 
     def make_tgt_mask(self, tgt):
 
         batch_size, tgt_len = tgt.shape
 
-        tgt_mask = torch.tril(
+        mask = torch.tril(
             torch.ones(
                 (tgt_len, tgt_len),
                 device=tgt.device
             )
         ).bool()
 
-        tgt_mask = tgt_mask.unsqueeze(0).unsqueeze(1)
-
-        return tgt_mask
+        return mask.unsqueeze(0).unsqueeze(1)
 
     def forward(self, src, tgt):
 
@@ -74,21 +70,19 @@ class Transformer(nn.Module):
 
         tgt_mask = self.make_tgt_mask(tgt)
 
-        enc_src = self.encoder(
+        enc_out = self.encoder(
             src,
             src_mask
         )
 
-        dec_output = self.decoder(
+        dec_out = self.decoder(
             tgt,
-            enc_src,
+            enc_out,
             src_mask,
             tgt_mask
         )
 
-        output = self.fc_out(dec_output)
-
-        return output
+        return self.fc_out(dec_out)
 
     @torch.no_grad()
     def infer(self, src_text):

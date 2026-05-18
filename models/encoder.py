@@ -1,40 +1,64 @@
+import torch
 import torch.nn as nn
-from models.attention import MultiHeadAttention
 
-class FeedForward(nn.Module):
-    def __init__(self,d_model,d_ff,dropout):
+from models.attention import MultiHeadAttention
+from models.positional_encoding import PositionalEncoding
+
+class Encoder(nn.Module):
+
+    def __init__(
+        self,
+        vocab_size,
+        d_model,
+        heads,
+        layers,
+        d_ff,
+        dropout,
+        max_len=5000
+    ):
         super().__init__()
 
-        self.net=nn.Sequential(
-            nn.Linear(d_model,d_ff),
-            nn.ReLU(),
-            nn.Dropout(dropout),
-            nn.Linear(d_ff,d_model)
+        self.embedding = nn.Embedding(
+            vocab_size,
+            d_model
         )
 
-    def forward(self,x):
-        return self.net(x)
+        self.position = PositionalEncoding(
+            d_model,
+            max_len
+        )
 
-class EncoderLayer(nn.Module):
-    def __init__(self,d_model,heads,d_ff,dropout):
-        super().__init__()
+        self.layers = nn.ModuleList([
+            MultiHeadAttention(
+                d_model,
+                heads
+            )
+            for _ in range(layers)
+        ])
 
-        self.attention=MultiHeadAttention(d_model,heads)
+        self.norm = nn.LayerNorm(d_model)
 
-        self.norm1=nn.LayerNorm(d_model)
-        self.norm2=nn.LayerNorm(d_model)
+        self.dropout = nn.Dropout(dropout)
 
-        self.ffn=FeedForward(d_model,d_ff,dropout)
+    def forward(self, x, mask):
 
-        self.dropout=nn.Dropout(dropout)
+        x = self.embedding(x)
 
-    def forward(self,x,mask):
-        attn_output,_=self.attention(x,x,x,mask)
+        x = self.position(x)
 
-        x=self.norm1(x+self.dropout(attn_output))
+        x = self.dropout(x)
 
-        ffn_output=self.ffn(x)
+        for layer in self.layers:
 
-        x=self.norm2(x+self.dropout(ffn_output))
+            attention = layer(
+                x,
+                x,
+                x,
+                mask
+            )
+
+            x = self.norm(
+                x + attention
+            )
 
         return x
