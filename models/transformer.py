@@ -7,17 +7,17 @@ from models.positional_encoding import PositionalEncoding
 
 class Transformer(nn.Module):
     def __init__(
-        self,
-        src_vocab_size,
-        tgt_vocab_size,
-        d_model,
-        heads,
-        encoder_layers,
-        decoder_layers,
-        d_ff,
-        dropout,
-        pad_idx
-    ):
+    self,
+    src_vocab_size=10000,
+    tgt_vocab_size=10000,
+    d_model=256,
+    heads=8,
+    encoder_layers=4,
+    decoder_layers=4,
+    d_ff=1024,
+    dropout=0.1,
+    pad_idx=0
+):
         super().__init__()
 
         self.src_embedding=nn.Embedding(src_vocab_size,d_model)

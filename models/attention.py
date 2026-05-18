@@ -110,4 +110,4 @@ class MultiHeadAttention(nn.Module):
 
         output = self.W_o(output)
 
-        return output, attention_weights
+        return output
