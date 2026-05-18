@@ -21,7 +21,7 @@ class MultiHeadAttention(nn.Module):
 
     def split_heads(self, x):
 
-        batch_size, seq_len, d_model = x.size()
+        batch_size, seq_len, _ = x.size()
 
         x = x.view(
             batch_size,
@@ -34,7 +34,7 @@ class MultiHeadAttention(nn.Module):
 
     def combine_heads(self, x):
 
-        batch_size, num_heads, seq_len, d_k = x.size()
+        batch_size, heads, seq_len, d_k = x.size()
 
         x = x.transpose(1, 2).contiguous()
 
@@ -59,16 +59,16 @@ class MultiHeadAttention(nn.Module):
 
         if mask is not None:
 
-         if mask.dim() == 2:
-          mask = mask.unsqueeze(1).unsqueeze(2)
+            if mask.dim() == 2:
+                mask = mask.unsqueeze(1).unsqueeze(2)
 
-        elif mask.dim() == 3:
-          mask = mask.unsqueeze(1)
+            elif mask.dim() == 3:
+                mask = mask.unsqueeze(1)
 
-        scores = scores.masked_fill(
-        mask == 0,
-        float("-inf")
-    )
+            scores = scores.masked_fill(
+                mask == 0,
+                -1e9
+            )
 
         attention_weights = torch.softmax(
             scores,
@@ -80,7 +80,7 @@ class MultiHeadAttention(nn.Module):
             V
         )
 
-        return output, attention_weights
+        return output
 
     def forward(
         self,
@@ -98,7 +98,7 @@ class MultiHeadAttention(nn.Module):
         K = self.split_heads(K)
         V = self.split_heads(V)
 
-        attention_output, attention_weights = (
+        attention_output = (
             self.scaled_dot_product_attention(
                 Q,
                 K,
