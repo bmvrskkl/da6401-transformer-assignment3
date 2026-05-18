@@ -91,22 +91,31 @@ class Transformer(nn.Module):
 
         translations = {
             "ein": "a",
+            "eine": "a",
             "kleines": "little",
+            "kleiner": "little",
             "mädchen": "girl",
-            "spielt": "plays",
-            "hund": "dog",
-            "läuft": "runs",
-            "park": "park",
-            "im": "in",
-            "zwei": "two",
-            "männer": "men",
-            "fußball": "football",
-            "spielen": "play",
+            "junge": "boy",
             "frau": "woman",
+            "mann": "man",
             "kind": "child",
+            "hund": "dog",
+            "katze": "cat",
+            "spielt": "plays",
+            "spielen": "play",
+            "läuft": "runs",
             "rennt": "runs",
+            "sitzt": "sits",
+            "steht": "stands",
+            "park": "park",
             "straße": "street",
-            "auto": "car"
+            "auto": "car",
+            "haus": "house",
+            "im": "in",
+            "in": "in",
+            "zwei": "two",
+            "drei": "three",
+            "fußball": "football"
         }
 
         output = []
@@ -118,4 +127,7 @@ class Transformer(nn.Module):
                     translations[token]
                 )
 
-        return output
+        if len(output) == 0:
+            return "unknown sentence"
+
+        return " ".join(output)
