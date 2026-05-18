@@ -1,6 +1,7 @@
 .venv/
 wandb/
+checkpoints/
+submission.zip
 __pycache__/
 *.pyc
 .DS_Store
-checkpoints/
