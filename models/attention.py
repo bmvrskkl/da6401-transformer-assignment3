@@ -65,11 +65,16 @@ class MultiHeadAttention(nn.Module):
             elif mask.dim() == 3:
                 mask = mask.unsqueeze(1)
 
-            mask = mask.bool()
+            mask = mask.expand(
+                scores.size(0),
+                scores.size(1),
+                scores.size(2),
+                scores.size(3)
+            )
 
             scores = scores.masked_fill(
                 mask == 0,
-                float("-inf")
+                -1e9
             )
 
         attention_weights = torch.softmax(
