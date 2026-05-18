@@ -60,16 +60,16 @@ class MultiHeadAttention(nn.Module):
         if mask is not None:
 
             if mask.dim() == 2:
-                mask = mask[:, None, None, :]
+                mask = mask.unsqueeze(1).unsqueeze(2)
 
             elif mask.dim() == 3:
-                mask = mask[:, None, :, :]
+                mask = mask.unsqueeze(1)
 
-            mask = mask.to(dtype=torch.bool)
+            mask = mask.bool()
 
             scores = scores.masked_fill(
-                ~mask,
-                -1e9
+                mask == 0,
+                float("-inf")
             )
 
         attention_weights = torch.softmax(
