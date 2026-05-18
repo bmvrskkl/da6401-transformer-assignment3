@@ -60,13 +60,15 @@ class MultiHeadAttention(nn.Module):
         if mask is not None:
 
             if mask.dim() == 2:
-                mask = mask.unsqueeze(0).unsqueeze(0)
+                mask = mask[:, None, None, :]
 
             elif mask.dim() == 3:
-                mask = mask.unsqueeze(1)
+                mask = mask[:, None, :, :]
+
+            mask = mask.to(dtype=torch.bool)
 
             scores = scores.masked_fill(
-                mask == 0,
+                ~mask,
                 -1e9
             )
 
