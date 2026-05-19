@@ -60,17 +60,21 @@ class MultiHeadAttention(nn.Module):
 
         if mask is not None:
 
-            # FORCE BOOLEAN
-            mask = mask.bool()
+            # convert to bool safely
+            if mask.dtype != torch.bool:
+                mask = mask.bool()
 
             # expand dimensions safely
-            while mask.dim() < scores.dim():
+            if mask.dim() == 2:
+                mask = mask.unsqueeze(1).unsqueeze(2)
+
+            elif mask.dim() == 3:
                 mask = mask.unsqueeze(1)
 
-            # APPLY BEFORE SOFTMAX
+            # APPLY MASK BEFORE SOFTMAX
             scores = scores.masked_fill(
-                ~mask,
-                float('-1e9')
+                mask == 0,
+                -1e9
             )
 
         attention = torch.softmax(
