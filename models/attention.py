@@ -5,6 +5,7 @@ import math
 class MultiHeadAttention(nn.Module):
 
     def __init__(self, d_model, num_heads):
+
         super().__init__()
 
         assert d_model % num_heads == 0
@@ -21,7 +22,7 @@ class MultiHeadAttention(nn.Module):
 
     def split_heads(self, x):
 
-        batch_size, seq_len, _ = x.size()
+        batch_size, seq_len, d_model = x.size()
 
         x = x.view(
             batch_size,
@@ -59,24 +60,26 @@ class MultiHeadAttention(nn.Module):
 
         if mask is not None:
 
-            if mask.dim() == 2:
-                mask = mask.unsqueeze(1).unsqueeze(2)
+            # FORCE BOOLEAN
+            mask = mask.bool()
 
-            elif mask.dim() == 3:
+            # expand dimensions safely
+            while mask.dim() < scores.dim():
                 mask = mask.unsqueeze(1)
 
+            # APPLY BEFORE SOFTMAX
             scores = scores.masked_fill(
-                mask == 0,
-                -1e9
+                ~mask,
+                float('-1e9')
             )
 
-        attention_weights = torch.softmax(
+        attention = torch.softmax(
             scores,
             dim=-1
         )
 
         output = torch.matmul(
-            attention_weights,
+            attention,
             V
         )
 
