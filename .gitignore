@@ -1,7 +1,5 @@
-.venv/
+transformer.pth
+models_backup/
 wandb/
-checkpoints/
-submission.zip
 __pycache__/
 *.pyc
-.DS_Store
