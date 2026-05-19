@@ -34,7 +34,7 @@ class MultiHeadAttention(nn.Module):
 
     def combine_heads(self, x):
 
-        batch_size, heads, seq_len, d_k = x.size()
+        batch_size, num_heads, seq_len, d_k = x.size()
 
         x = x.transpose(1, 2).contiguous()
 
@@ -64,13 +64,6 @@ class MultiHeadAttention(nn.Module):
 
             elif mask.dim() == 3:
                 mask = mask.unsqueeze(1)
-
-            mask = mask.expand(
-                scores.size(0),
-                scores.size(1),
-                scores.size(2),
-                scores.size(3)
-            )
 
             scores = scores.masked_fill(
                 mask == 0,
@@ -105,13 +98,11 @@ class MultiHeadAttention(nn.Module):
         K = self.split_heads(K)
         V = self.split_heads(V)
 
-        attention_output = (
-            self.scaled_dot_product_attention(
-                Q,
-                K,
-                V,
-                mask
-            )
+        attention_output = self.scaled_dot_product_attention(
+            Q,
+            K,
+            V,
+            mask
         )
 
         output = self.combine_heads(

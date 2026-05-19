@@ -19,13 +19,23 @@ valid_data = load_dataset(
 )
 
 def tokenize_de(text):
-    return [tok.text.lower() for tok in spacy_de.tokenizer(text)]
+
+    return [
+        tok.text.lower()
+        for tok in spacy_de.tokenizer(text)
+    ]
 
 def tokenize_en(text):
-    return [tok.text.lower() for tok in spacy_en.tokenizer(text)]
+
+    return [
+        tok.text.lower()
+        for tok in spacy_en.tokenizer(text)
+    ]
 
 class Vocabulary:
+
     def __init__(self):
+
         self.token_to_idx = {
             "<pad>": 0,
             "<bos>": 1,
@@ -41,34 +51,58 @@ class Vocabulary:
         }
 
     def build(self, counter):
+
         idx = 4
 
         for token in counter:
+
             if token not in self.token_to_idx:
+
                 self.token_to_idx[token] = idx
+
                 self.idx_to_token[idx] = token
+
                 idx += 1
 
     def __getitem__(self, token):
-        return self.token_to_idx.get(token, 3)
+
+        return self.token_to_idx.get(
+            token,
+            3
+        )
 
     def lookup_token(self, idx):
-        return self.idx_to_token.get(idx, "<unk>")
+
+        return self.idx_to_token.get(
+            idx,
+            "<unk>"
+        )
 
     def __len__(self):
+
         return len(self.token_to_idx)
 
-def build_vocab(data, tokenizer, language):
+def build_vocab(
+    data,
+    tokenizer,
+    language
+):
+
     counter = Counter()
 
     for sample in data:
-        counter.update(tokenizer(sample[language]))
 
-    v = Vocabulary()
+        counter.update(
+            tokenizer(
+                sample[language]
+            )
+        )
 
-    v.build(counter)
+    vocab = Vocabulary()
 
-    return v
+    vocab.build(counter)
+
+    return vocab
 
 src_vocab = build_vocab(
     train_data,
@@ -82,20 +116,33 @@ tgt_vocab = build_vocab(
     "en"
 )
 
-def text_to_tensor(tokens, vocab_obj):
-    ids = [vocab_obj["<bos>"]]
+def text_to_tensor(
+    tokens,
+    vocab_obj
+):
 
-    ids += [vocab_obj[token] for token in tokens]
+    ids = [
+        vocab_obj["<bos>"]
+    ]
 
-    ids.append(vocab_obj["<eos>"])
+    ids += [
+        vocab_obj[token]
+        for token in tokens
+    ]
+
+    ids.append(
+        vocab_obj["<eos>"]
+    )
 
     return torch.tensor(ids)
 
 def collate_fn(batch):
+
     src_batch = []
     tgt_batch = []
 
     for sample in batch:
+
         src = text_to_tensor(
             tokenize_de(sample["de"]),
             src_vocab
@@ -107,6 +154,7 @@ def collate_fn(batch):
         )
 
         src_batch.append(src)
+
         tgt_batch.append(tgt)
 
     src_batch = pad_sequence(
