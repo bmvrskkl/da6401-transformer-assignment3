@@ -6,8 +6,6 @@ from tqdm import tqdm
 from nltk.translate.bleu_score import corpus_bleu
 import wandb
 
-from config import *
-
 from models.transformer import Transformer
 from models.scheduler import NoamScheduler
 
@@ -24,19 +22,20 @@ device = torch.device(
 )
 
 wandb.init(
-    project="da6401_transformer"
+    project="da6401_transformer",
+    name="without_scaling_factor"
 )
 
 train_loader = DataLoader(
     train_data,
-    batch_size=BATCH_SIZE,
+    batch_size=32,
     shuffle=True,
     collate_fn=collate_fn
 )
 
 valid_loader = DataLoader(
     valid_data,
-    batch_size=BATCH_SIZE,
+    batch_size=32,
     shuffle=False,
     collate_fn=collate_fn
 )
@@ -69,25 +68,6 @@ scheduler = NoamScheduler(
     256,
     4000
 )
-
-def decode_tokens(tokens):
-
-    words = []
-
-    for token in tokens:
-
-        token = token.item()
-
-        if token == 2:
-            break
-
-        if token > 3:
-
-            words.append(
-                tgt_vocab.lookup_token(token)
-            )
-
-    return words
 
 @torch.no_grad()
 def evaluate():
@@ -126,13 +106,38 @@ def evaluate():
             tgt_output
         ):
 
-            pred_words = decode_tokens(pred)
+            pred_words = []
+            tgt_words = []
 
-            target_words = decode_tokens(target)
+            for token in pred:
+
+                token = token.item()
+
+                if token == 2:
+                    break
+
+                if token > 3:
+
+                    pred_words.append(
+                        tgt_vocab.lookup_token(token)
+                    )
+
+            for token in target:
+
+                token = token.item()
+
+                if token == 2:
+                    break
+
+                if token > 3:
+
+                    tgt_words.append(
+                        tgt_vocab.lookup_token(token)
+                    )
 
             hypotheses.append(pred_words)
 
-            references.append([target_words])
+            references.append([tgt_words])
 
     bleu = corpus_bleu(
         references,
@@ -144,7 +149,9 @@ def evaluate():
         bleu
     )
 
-EPOCHS = 15
+EPOCHS = 3
+
+global_step = 0
 
 for epoch in range(EPOCHS):
 
@@ -179,6 +186,25 @@ for epoch in range(EPOCHS):
 
         loss.backward()
 
+        # SAFE GRADIENT LOGGING
+
+        first_layer = model.encoder.layers[0]
+
+        q_grad = 0.0
+        k_grad = 0.0
+
+        if first_layer.W_q.weight.grad is not None:
+            q_grad = first_layer.W_q.weight.grad.norm().item()
+
+        if first_layer.W_k.weight.grad is not None:
+            k_grad = first_layer.W_k.weight.grad.norm().item()
+
+        wandb.log({
+            "q_grad_norm": q_grad,
+            "k_grad_norm": k_grad,
+            "step": global_step
+        })
+
         torch.nn.utils.clip_grad_norm_(
             model.parameters(),
             1.0
@@ -189,6 +215,8 @@ for epoch in range(EPOCHS):
         scheduler.step()
 
         total_loss += loss.item()
+
+        global_step += 1
 
         progress_bar.set_postfix(
             loss=loss.item()
@@ -212,10 +240,5 @@ for epoch in range(EPOCHS):
         f"Val Loss: {val_loss:.4f} | "
         f"BLEU: {bleu:.2f}"
     )
-
-torch.save(
-    model.state_dict(),
-    "transformer.pth"
-)
 
 print("Training complete")

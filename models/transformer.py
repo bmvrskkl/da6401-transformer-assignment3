@@ -18,6 +18,7 @@ class Transformer(nn.Module):
         dropout=0.1,
         pad_idx=0
     ):
+
         super().__init__()
 
         self.pad_idx = pad_idx
@@ -47,22 +48,32 @@ class Transformer(nn.Module):
 
     def make_src_mask(self, src):
 
-        return (
+        src_mask = (
             src != self.pad_idx
-        ).unsqueeze(1).unsqueeze(2)
+        )
+
+        return src_mask.unsqueeze(1).unsqueeze(2)
 
     def make_tgt_mask(self, tgt):
 
         batch_size, tgt_len = tgt.shape
 
-        mask = torch.tril(
+        tgt_pad_mask = (
+            tgt != self.pad_idx
+        ).unsqueeze(1).unsqueeze(2)
+
+        causal_mask = torch.tril(
             torch.ones(
                 (tgt_len, tgt_len),
                 device=tgt.device
             )
         ).bool()
 
-        return mask.unsqueeze(0).unsqueeze(1)
+        causal_mask = causal_mask.unsqueeze(0).unsqueeze(1)
+
+        tgt_mask = tgt_pad_mask & causal_mask
+
+        return tgt_mask
 
     def forward(self, src, tgt):
 
@@ -82,7 +93,9 @@ class Transformer(nn.Module):
             tgt_mask
         )
 
-        return self.fc_out(dec_out)
+        output = self.fc_out(dec_out)
+
+        return output
 
     @torch.no_grad()
     def infer(self, src_text):

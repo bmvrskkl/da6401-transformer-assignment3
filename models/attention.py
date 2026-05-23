@@ -14,11 +14,27 @@ class MultiHeadAttention(nn.Module):
         self.num_heads = num_heads
         self.d_k = d_model // num_heads
 
-        self.W_q = nn.Linear(d_model, d_model)
-        self.W_k = nn.Linear(d_model, d_model)
-        self.W_v = nn.Linear(d_model, d_model)
+        self.W_q = nn.Linear(
+            d_model,
+            d_model
+        )
 
-        self.W_o = nn.Linear(d_model, d_model)
+        self.W_k = nn.Linear(
+            d_model,
+            d_model
+        )
+
+        self.W_v = nn.Linear(
+            d_model,
+            d_model
+        )
+
+        self.W_o = nn.Linear(
+            d_model,
+            d_model
+        )
+
+        self.attention_weights = None
 
     def split_heads(self, x):
 
@@ -60,27 +76,27 @@ class MultiHeadAttention(nn.Module):
 
         if mask is not None:
 
-            # convert to bool safely
             if mask.dtype != torch.bool:
                 mask = mask.bool()
 
-            # expand dimensions safely
             if mask.dim() == 2:
                 mask = mask.unsqueeze(1).unsqueeze(2)
 
             elif mask.dim() == 3:
                 mask = mask.unsqueeze(1)
 
-            # APPLY MASK BEFORE SOFTMAX
             scores = scores.masked_fill(
-                mask == 0,
-                -1e9
+                ~mask,
+                float('-1e9')
             )
 
         attention = torch.softmax(
             scores,
             dim=-1
         )
+
+        # STORE ATTENTION WEIGHTS
+        self.attention_weights = attention
 
         output = torch.matmul(
             attention,
